@@ -1,0 +1,242 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <iomanip>
+#include <fstream>
+
+using namespace std;
+
+// Structure to represent menu items
+struct MenuItem {
+    int id;
+    string name;
+    double price;
+};
+
+// Class to manage the restaurant menu
+class Menu {
+private:
+    vector<MenuItem> items;
+    int nextId;
+
+public:
+    Menu() : nextId(1) {}
+
+    void addItem(const string& name, double price) {
+        items.push_back({ nextId++, name, price });
+    }
+
+    void removeItem(int id) {
+        for (auto it = items.begin(); it != items.end(); ++it) {
+            if (it->id == id) {
+                items.erase(it);
+                return;
+            }
+        }
+    }
+
+    void updateItem(int id, const string& name, double price) {
+        for (auto& item : items) {
+            if (item.id == id) {
+                item.name = name;
+                item.price = price;
+                return;
+            }
+        }
+    }
+
+    void displayMenu() const {
+        cout << "Menu:\n";
+        for (const auto& item : items) {
+            cout << item.id << ". " << item.name << " - $" << fixed << setprecision(2) << item.price << endl;
+        }
+    }
+
+    const MenuItem* getItemById(int id) const {
+        for (const auto& item : items) {
+            if (item.id == id) {
+                return &item;
+            }
+        }
+        return nullptr;
+    }
+};
+
+// Structure to represent an order item
+struct OrderItem {
+    MenuItem menuItem;
+    int quantity;
+};
+
+// Class to manage customer orders
+class Order {
+private:
+    vector<OrderItem> orderItems;
+
+public:
+    void addOrderItem(const MenuItem& menuItem, int quantity) {
+        for (auto& item : orderItems) {
+            if (item.menuItem.id == menuItem.id) {
+                item.quantity += quantity;
+                return;
+            }
+        }
+        orderItems.push_back({ menuItem, quantity });
+    }
+
+    void removeOrderItem(int id) {
+        for (auto it = orderItems.begin(); it != orderItems.end(); ++it) {
+            if (it->menuItem.id == id) {
+                orderItems.erase(it);
+                return;
+            }
+        }
+    }
+
+    void updateOrderItem(int id, int quantity) {
+        for (auto& item : orderItems) {
+            if (item.menuItem.id == id) {
+                item.quantity = quantity;
+                return;
+            }
+        }
+    }
+
+    void displayOrder() const {
+        cout << "Current Order:\n";
+        for (const auto& item : orderItems) {
+            cout << item.menuItem.name << " x" << item.quantity 
+                 << " - $" << fixed << setprecision(2) << item.menuItem.price * item.quantity << endl;
+        }
+    }
+
+    double calculateTotal() const {
+        double total = 0;
+        for (const auto& item : orderItems) {
+            total += item.menuItem.price * item.quantity;
+        }
+        return total;
+    }
+
+    void saveOrderToFile() const {
+        ofstream file("OrderSummary.txt");
+        file << "Order Summary:\n";
+        for (const auto& item : orderItems) {
+            file << item.menuItem.name << " x" << item.quantity 
+                 << " - $" << fixed << setprecision(2) << item.menuItem.price * item.quantity << endl;
+        }
+        file << "Total: $" << fixed << setprecision(2) << calculateTotal() << endl;
+        file.close();
+    }
+};
+
+// Main function to run the restaurant management system
+int main() {
+    Menu menu;
+    Order order;
+
+    // Adding some menu items
+    menu.addItem("Burger", 5.99);
+    menu.addItem("Pizza", 8.99);
+    menu.addItem("Pasta", 7.49);
+    menu.addItem("Salad", 4.99);
+
+    int choice;
+    while (true) {
+        cout << "\n1. Display Menu\n2. Add Item to Order\n3. Remove Item from Order\n4. Update Item Quantity\n"
+             << "5. Display Order\n6. Calculate Total\n7. Save Order to File\n8. Admin Menu\n9. Exit\n";
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        if (choice == 1) {
+            menu.displayMenu();
+        } else if (choice == 2) {
+            int itemId, quantity;
+            menu.displayMenu();
+            cout << "Enter item ID to add: ";
+            cin >> itemId;
+            cout << "Enter quantity: ";
+            cin >> quantity;
+
+            const MenuItem* menuItem = menu.getItemById(itemId);
+            if (menuItem) {
+                order.addOrderItem(*menuItem, quantity);
+                cout << "Item added to order.\n";
+            } else {
+                cout << "Invalid item ID.\n";
+            }
+        } else if (choice == 3) {
+            int itemId;
+            order.displayOrder();
+            cout << "Enter item ID to remove: ";
+            cin >> itemId;
+            order.removeOrderItem(itemId);
+            cout << "Item removed from order.\n";
+        } else if (choice == 4) {
+            int itemId, quantity;
+            order.displayOrder();
+            cout << "Enter item ID to update: ";
+            cin >> itemId;
+            cout << "Enter new quantity: ";
+            cin >> quantity;
+            order.updateOrderItem(itemId, quantity);
+            cout << "Item quantity updated.\n";
+        } else if (choice == 5) {
+            order.displayOrder();
+        } else if (choice == 6) {
+            double total = order.calculateTotal();
+            cout << "Total amount: $" << fixed << setprecision(2) << total << endl;
+        } else if (choice == 7) {
+            order.saveOrderToFile();
+            cout << "Order saved to file.\n";
+        } else if (choice == 8) {
+            int adminChoice;
+            cout << "\nAdmin Menu:\n1. Add Menu Item\n2. Remove Menu Item\n3. Update Menu Item\n4. Back to Main Menu\n";
+            cout << "Enter your choice: ";
+            cin >> adminChoice;
+            if (adminChoice == 1) {
+                string name;
+                double price;
+                cout << "Enter item name: ";
+                cin.ignore();
+                getline(cin, name);
+                cout << "Enter item price: ";
+                cin >> price;
+                menu.addItem(name, price);
+                cout << "Item added to menu.\n";
+            } else if (adminChoice == 2) {
+                int itemId;
+                menu.displayMenu();
+                cout << "Enter item ID to remove: ";
+                cin >> itemId;
+                menu.removeItem(itemId);
+                cout << "Item removed from menu.\n";
+            } else if (adminChoice == 3) {
+                int itemId;
+                string name;
+                double price;
+                menu.displayMenu();
+                cout << "Enter item ID to update: ";
+                cin >> itemId;
+                cout << "Enter new item name: ";
+                cin.ignore();
+                getline(cin, name);
+                cout << "Enter new item price: ";
+                cin >> price;
+                menu.updateItem(itemId, name, price);
+                cout << "Item updated in menu.\n";
+            } else if (adminChoice == 4) {
+                continue;
+            } else {
+                cout << "Invalid choice. Please try again.\n";
+            }
+        } else if (choice == 9) {
+            cout << "Exiting...\n";
+            break;
+        } else {
+            cout << "Invalid choice. Please try again.\n";
+        }
+    }
+
+    return 0;
+}
